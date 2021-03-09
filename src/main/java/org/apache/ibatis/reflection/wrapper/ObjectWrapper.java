@@ -26,7 +26,8 @@ import org.apache.ibatis.reflection.property.PropertyTokenizer;
  */
 /**
  * 对象包装器
- * 
+ * ObjectWrapper 封装的是对象元信息
+ * 注意MetaClass 封装的是Class 元信息
  */
 public interface ObjectWrapper {
 

@@ -30,6 +30,13 @@ public class MethodInvoker implements Invoker {
   private Class<?> type;
   private Method method;
 
+  /**
+   * MethodInvoker 构造函数
+   * type getter方法时为返回值类型 setter方法时为参数类型
+   * Reflector中type类字段有setter getter方法的字段生成的invoker
+   *
+   * @param method
+   */
   public MethodInvoker(Method method) {
     this.method = method;
 

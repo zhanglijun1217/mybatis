@@ -26,13 +26,13 @@ import org.apache.ibatis.reflection.property.PropertyTokenizer;
  * @author Clinton Begin
  */
 /**
- * 对象包装器的基类
- * 
+ * 对象包装器的基类 ObjectWrapper的抽象实现
  */
 public abstract class BaseWrapper implements ObjectWrapper {
     //什么方法都没实现，只提供了一些util方法
 
   protected static final Object[] NO_ARGUMENTS = new Object[0];
+  // metaObject引用
   protected MetaObject metaObject;
 
   protected BaseWrapper(MetaObject metaObject) {
@@ -44,12 +44,21 @@ public abstract class BaseWrapper implements ObjectWrapper {
     if ("".equals(prop.getName())) {
       return object;
     } else {
+      // 调用了metaObject的getValue方法
+      // 借助metaObject方法 获取一个对象中的属性值 集合
       return metaObject.getValue(prop.getName());
     }
   }
 
-  //取集合的值
-  //中括号有2个意思，一个是Map，一个是List或数组
+
+  /**
+   *  //取集合的值
+   *   //中括号有2个意思，一个是Map，一个是List或数组
+   *   利用PropertyTokenizer工具类 设置/获取 collection中的元素信息
+   * @param prop
+   * @param collection
+   * @return
+   */
   protected Object getCollectionValue(PropertyTokenizer prop, Object collection) {
     if (collection instanceof Map) {
         //map['name']

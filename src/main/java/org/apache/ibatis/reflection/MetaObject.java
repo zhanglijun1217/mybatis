@@ -39,13 +39,19 @@ public class MetaObject {
 
     //有一个原来的对象，对象包装器，对象工厂，对象包装器工厂
   private Object originalObject;
+  // 对象包装器
   private ObjectWrapper objectWrapper;
+  // 对象工厂
   private ObjectFactory objectFactory;
+  // 对象包装器工厂
   private ObjectWrapperFactory objectWrapperFactory;
 
   private MetaObject(Object object, ObjectFactory objectFactory, ObjectWrapperFactory objectWrapperFactory) {
+    // 原始对象
     this.originalObject = object;
+    // 对象工厂
     this.objectFactory = objectFactory;
+    // 对象包装器工厂
     this.objectWrapperFactory = objectWrapperFactory;
 
     if (object instanceof ObjectWrapper) {
@@ -138,6 +144,7 @@ public class MetaObject {
        return metaValue.getValue(prop.getChildren());
       }
     } else {
+      // 最终根据objectWrapper获取prop对应的值
       return objectWrapper.get(prop);
     }
   }

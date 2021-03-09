@@ -31,15 +31,19 @@ import org.apache.ibatis.reflection.property.PropertyTokenizer;
  */
 /**
  * 原类
- * 
+ * 依赖 PropertyTokenizer 解析表达式，然后递归查找，查找过程会依赖 Reflector 的相关方法。
  */
 public class MetaClass {
 
     //有一个反射器
     //可以看到方法基本都是再次委派给这个Reflector
+  /**
+   * 大多数功能是通过reflector变量完成的
+   */
   private Reflector reflector;
 
   private MetaClass(Class<?> type) {
+    // 构造函数初始化
     this.reflector = Reflector.forClass(type);
   }
 
@@ -67,6 +71,7 @@ public class MetaClass {
 
   public String findProperty(String name, boolean useCamelCaseMapping) {
     if (useCamelCaseMapping) {
+      // 使用驼峰
       name = name.replace("_", "");
     }
     return findProperty(name);
@@ -181,13 +186,17 @@ public class MetaClass {
   }
 
   private StringBuilder buildProperty(String name, StringBuilder builder) {
+    // 例如传入order.deliveryAddress.customer.name
+    // PropertyTokenizer来处理表达式
     PropertyTokenizer prop = new PropertyTokenizer(name);
     if (prop.hasNext()) {
       String propertyName = reflector.findPropertyName(prop.getName());
       if (propertyName != null) {
         builder.append(propertyName);
         builder.append(".");
+        // 为children 来生成MetaClass对象
         MetaClass metaProp = metaClassForProperty(propertyName);
+        // 嵌套处理 找到对应的property
         metaProp.buildProperty(prop.getChildren(), builder);
       }
     } else {

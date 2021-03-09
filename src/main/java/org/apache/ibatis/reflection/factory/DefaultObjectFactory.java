@@ -43,6 +43,7 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
 
   @Override
   public <T> T create(Class<T> type) {
+    // 底层都是通过构造函数newInstance创建实例
     return create(type, null, null);
   }
 
@@ -67,7 +68,7 @@ public class DefaultObjectFactory implements ObjectFactory, Serializable {
   private <T> T instantiateClass(Class<T> type, List<Class<?>> constructorArgTypes, List<Object> constructorArgs) {
     try {
       Constructor<T> constructor;
-      //如果没有传入constructor，调用空构造函数，核心是调用Constructor.newInstance
+      //如果没有传入constructor的参数，调用空构造函数，核心是调用Constructor.newInstance
       if (constructorArgTypes == null || constructorArgs == null) {
         constructor = type.getDeclaredConstructor();
         if (!constructor.isAccessible()) {

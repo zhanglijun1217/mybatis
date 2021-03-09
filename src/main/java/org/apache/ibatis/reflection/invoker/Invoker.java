@@ -19,10 +19,13 @@ import java.lang.reflect.InvocationTargetException;
 
 /**
  * @author Clinton Begin
+ * 在 Reflector 对象的初始化过程中，
+ *  所有属性的 getter/setter 方法都会被封装成 MethodInvoker 对象，
+ *   没有 getter/setter 的字段也会生成对应的 Get/SetFieldInvoker 对象。
  */
 /**
  * 调用者
- * 
+ *
  */
 public interface Invoker {
   //调用

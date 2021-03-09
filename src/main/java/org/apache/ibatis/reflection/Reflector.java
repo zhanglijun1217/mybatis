@@ -54,25 +54,45 @@ public class Reflector {
   private static final String[] EMPTY_STRING_ARRAY = new String[0];
   //这里用ConcurrentHashMap，多线程支持，作为一个缓存
   private static final Map<Class<?>, Reflector> REFLECTOR_MAP = new ConcurrentHashMap<Class<?>, Reflector>();
-
+ // 当前reflector存储的类型
   private Class<?> type;
-  //getter的属性列表
+  //getter的属性列表 可读的属性列表
   private String[] readablePropertyNames = EMPTY_STRING_ARRAY;
-  //setter的属性列表
+  //setter的属性列表 可写的属性列表
   private String[] writeablePropertyNames = EMPTY_STRING_ARRAY;
-  //setter的方法列表
+  //setter的方法映射 key：属性名称 value MethodInvoker
   private Map<String, Invoker> setMethods = new HashMap<String, Invoker>();
-  //getter的方法列表
+  //getter的方法映射 key 属性名称
   private Map<String, Invoker> getMethods = new HashMap<String, Invoker>();
-  //setter的类型列表
+
+  //setter的类型列表 ：属性对应的 setter 方法的参数值类型，key 是属性名称，value参数类型。
   private Map<String, Class<?>> setTypes = new HashMap<String, Class<?>>();
-  //getter的类型列表
+  //getter的类型列表 属性对应的getter方法的参数值类型 key是属性名称 value是返回值类型
   private Map<String, Class<?>> getTypes = new HashMap<String, Class<?>>();
   //构造函数
   private Constructor<?> defaultConstructor;
 
+  // 所有属性名称的集合 其中的属性名称都是大写的 key:全为大写的name value：全为小写的name
   private Map<String, String> caseInsensitivePropertyMap = new HashMap<String, String>();
 
+  /**
+   * 在我们构造一个 Reflector 对象的时候，传入一个 Class 对象，通过解析这个 Class 对象，即可填充上述核心字段，整个核心流程大致可描述为如下。
+   *
+   * 用 type 字段记录传入的 Class 对象。
+   *
+   * 通过反射拿到 Class 类的全部构造方法，并进行遍历，过滤得到唯一的无参构造方法来初始化 defaultConstructor 字段。这部分逻辑在 addDefaultConstructor() 方法中实现。
+   *
+   * 读取 Class 类中的 getter方法，填充上面介绍的 getMethods 集合和 getTypes 集合。这部分逻辑在 addGetMethods() 方法中实现。
+   *
+   * 读取 Class 类中的 setter 方法，填充上面介绍的 setMethods 集合和 setTypes 集合。这部分逻辑在 addSetMethods() 方法中实现。
+   *
+   * 读取 Class 中没有 getter/setter 方法的字段，生成对应的 Invoker 对象，填充 getMethods 集合、getTypes 集合以及 setMethods 集合、setTypes 集合。这部分逻辑在 addFields() 方法中实现。
+   *
+   * 根据前面三步构造的 getMethods/setMethods 集合的 keySet，初始化 readablePropertyNames、writablePropertyNames 集合。
+   *
+   * 遍历构造的 readablePropertyNames、writablePropertyNames 集合，将其中的属性名称全部转化成大写并记录到 caseInsensitivePropertyMap 集合中。
+   * @param clazz
+   */
   private Reflector(Class<?> clazz) {
     type = clazz;
     //加入构造函数
@@ -83,7 +103,9 @@ public class Reflector {
     addSetMethods(clazz);
     //加入字段
     addFields(clazz);
+    // 可读的字段名称集合
     readablePropertyNames = getMethods.keySet().toArray(new String[getMethods.keySet().size()]);
+    // 可写的字段名称集合
     writeablePropertyNames = setMethods.keySet().toArray(new String[setMethods.keySet().size()]);
     for (String propName : readablePropertyNames) {
         //这里为了能找到某一个属性，就把他变成大写作为map的key。。。
@@ -95,6 +117,7 @@ public class Reflector {
   }
 
   private void addDefaultConstructor(Class<?> clazz) {
+    // 通过反射拿到 Class 类的全部构造方法，并进行遍历，过滤得到唯一的无参构造方法来初始化 defaultConstructor 字段
     Constructor<?>[] consts = clazz.getDeclaredConstructors();
     for (Constructor<?> constructor : consts) {
       if (constructor.getParameterTypes().length == 0) {
@@ -174,6 +197,8 @@ public class Reflector {
   }
 
   private void addSetMethods(Class<?> cls) {
+    // key:返回值类型#方法名称:参数类型列表  value methodList
+    // 有多个的原因：会从父类中找 存在子类重写setter方法
     Map<String, List<Method>> conflictingSetters = new HashMap<String, List<Method>>();
     Method[] methods = getClassMethods(cls);
     for (Method method : methods) {
@@ -185,6 +210,8 @@ public class Reflector {
         }
       }
     }
+    // 解决冲突 即解决多个setter方法
+    // 优先返回值子类的setter方法
     resolveSetterConflicts(conflictingSetters);
   }
 
@@ -250,6 +277,7 @@ public class Reflector {
       }
       if (field.isAccessible()) {
         if (!setMethods.containsKey(field.getName())) {
+          // set方法中不包含当前字段
           // issue #379 - removed the check for final because JDK 1.5 allows
           // modification of final fields through reflection (JSR-133). (JGB)
           // pr #16 - final static can only be set by the classloader
@@ -259,6 +287,7 @@ public class Reflector {
           }
         }
         if (!getMethods.containsKey(field.getName())) {
+          //  无getter方法 为其添加到getFields变量中
           addGetField(field);
         }
       }
@@ -475,12 +504,14 @@ public class Reflector {
   }
 
   public String findPropertyName(String name) {
+      // 找到对应的属性 根据caseInsensitivePropertyMap中存储 key:全大写 value：属性真正的名称
     return caseInsensitivePropertyMap.get(name.toUpperCase(Locale.ENGLISH));
   }
 
   /*
    * Gets an instance of ClassInfo for the specified class.
    * 得到某个类的反射器，是静态方法，而且要缓存，又要多线程，所以REFLECTOR_MAP是一个ConcurrentHashMap
+   *
    *
    * @param clazz The class for which to lookup the method cache.
    * @return The method cache for the class

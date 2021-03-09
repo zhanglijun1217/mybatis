@@ -42,6 +42,7 @@ public class MapWrapper extends BaseWrapper {
   }
 
   //get,set是允许的，
+  // 不允许添加
   @Override
   public Object get(PropertyTokenizer prop) {
       //如果有index,说明是集合，那就要分解集合,调用的是BaseWrapper.resolveCollection 和 getCollectionValue

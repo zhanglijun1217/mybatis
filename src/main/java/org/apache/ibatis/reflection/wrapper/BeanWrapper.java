@@ -37,7 +37,7 @@ public class BeanWrapper extends BaseWrapper {
 
   //原来的对象
   private Object object;
-  //元类
+  //元类objectclass的MetaClass实例
   private MetaClass metaClass;
 
   public BeanWrapper(MetaObject metaObject, Object object) {
@@ -50,6 +50,7 @@ public class BeanWrapper extends BaseWrapper {
   public Object get(PropertyTokenizer prop) {
       //如果有index(有中括号),说明是集合，那就要解析集合,调用的是BaseWrapper.resolveCollection 和 getCollectionValue
     if (prop.getIndex() != null) {
+      // 处理集合
       Object collection = resolveCollection(prop, object);
       return getCollectionValue(prop, collection);
     } else {
